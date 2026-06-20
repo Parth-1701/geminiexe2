@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Code, Eye, Sparkles, Upload } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Code, Eye, Sparkles, Upload, Image as ImageIcon, X } from 'lucide-react';
 
 // --- INLINED PREVIEW COMPONENT ---
 function PreviewFrame({ htmlCode }: { htmlCode: string }) {
@@ -42,6 +42,26 @@ export default function VibeStudio() {
   const [htmlCode, setHtmlCode] = useState('');
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
   const [loading, setLoading] = useState(false);
+  
+  // New state for the uploaded image
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setMimeType(file.type);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // Get the base64 string without the data:image/png;base64, prefix
+      const base64String = (reader.result as string).split(',')[1];
+      setImageBase64(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -49,7 +69,8 @@ export default function VibeStudio() {
       const res = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        // Now sending the image data to our backend!
+        body: JSON.stringify({ prompt, imageBase64, mimeType }),
       });
       const data = await res.json();
       if (data.htmlCode) setHtmlCode(data.htmlCode);
@@ -62,7 +83,6 @@ export default function VibeStudio() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col font-sans">
-      {/* Navbar */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-600 p-2 rounded-lg text-white">
@@ -77,17 +97,44 @@ export default function VibeStudio() {
         </span>
       </header>
 
-      {/* Main Workspace */}
       <main className="flex-1 flex overflow-hidden h-[calc(100vh-73px)]">
         {/* Left Input Sidebar */}
         <div className="w-1/3 border-r border-slate-800 bg-slate-900/30 p-6 flex flex-col gap-6 overflow-y-auto">
+          
+          {/* Updated Upload Box */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Upload Component Blueprint / Wireframe</label>
-            <div className="border-2 border-dashed border-slate-800 hover:border-slate-700 transition rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer bg-slate-900/40 group">
-              <Upload className="w-8 h-8 text-slate-500 group-hover:text-slate-400 transition" />
-              <p className="text-sm text-slate-400">Drop your screenshot here or click to browse</p>
-              <p className="text-xs text-slate-600">PNG, JPG up to 10MB</p>
-            </div>
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+            />
+            
+            {!imageBase64 ? (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-800 hover:border-slate-700 transition rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer bg-slate-900/40 group"
+              >
+                <Upload className="w-8 h-8 text-slate-500 group-hover:text-slate-400 transition" />
+                <p className="text-sm text-slate-400 text-center">Tap to upload a screenshot</p>
+              </div>
+            ) : (
+              <div className="relative border border-slate-700 rounded-xl p-4 flex items-center gap-4 bg-slate-800/50">
+                <ImageIcon className="w-8 h-8 text-indigo-400" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-200">Image attached</p>
+                  <p className="text-xs text-slate-400">Ready for Vibe analysis</p>
+                </div>
+                <button 
+                  onClick={() => { setImageBase64(null); setMimeType(null); }}
+                  className="p-2 bg-slate-900 rounded-lg text-slate-400 hover:text-red-400 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 flex flex-col">
@@ -102,7 +149,7 @@ export default function VibeStudio() {
 
           <button
             onClick={handleGenerate}
-            disabled={loading}
+            disabled={loading || (!prompt && !imageBase64)}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-medium py-3 px-4 rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center justify-center gap-2 text-sm"
           >
             {loading ? 'Generating Canvas...' : 'Manifest Application'}
