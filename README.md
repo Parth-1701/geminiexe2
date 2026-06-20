@@ -24,9 +24,46 @@ Designers and developers often lose hours translating mockups into boilerplate c
 ## 💻 Live Demo
 Check out the live application here: **[https://geminiexe2.vercel.app/]**
 
-## ⚙️ Running Locally
-If you want to run this project on your local machine:
+## 🚀 Quick Start (Local Development)
 
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/Parth-1701/geminiexe2.git](https://github.com/Parth-1701/geminiexe2.git)
+Want to run **Vibe Coding Studio** on your own machine? Follow these steps to get your local environment manifested.
+
+### Prerequisites
+Before you begin, ensure you have the following installed:
+* **Node.js** (v18 or higher)
+* **npm** (or your preferred package manager)
+* A **[Google Gemini API Key](https://aistudio.google.com/)**
+
+---
+
+### 1️⃣ Clone the Repository
+Grab the source code and navigate into the project directory.
+```bash
+git clone [https://github.com/Parth-1701/geminiexe2.git](https://github.com/Parth-1701/geminiexe2.git)
+cd geminiexe2
+```
+
+### 2️⃣ Install Dependencies
+Install the required Next.js, Tailwind CSS, and Gemini SDK packages.
+```bash
+npm install
+```
+
+### 3️⃣ Configure Environment Variables
+Create a local environment file to securely store your API key.
+```bash
+# Create the file (Mac/Linux) or create it manually on Windows
+touch .env.local
+```
+Open .env.local and add your Gemini API key:
+```bash
+GEMINI_API_KEY="your_actual_api_key_here"
+```
+⚠️ Security Note: Never commit your .env.local file to GitHub!
+
+### 4️⃣ Manifest the Application
+Fire up the local development server.
+```bash
+npm run dev
+```
+✨ Success! Open http://localhost:3000 in your browser to start vibe coding.
