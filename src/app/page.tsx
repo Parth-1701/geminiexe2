@@ -42,6 +42,7 @@ export default function VibeStudio() {
   const [htmlCode, setHtmlCode] = useState('');
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
   const [loading, setLoading] = useState(false);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
   
   // New state for the uploaded image
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -65,6 +66,7 @@ export default function VibeStudio() {
 
   const handleGenerate = async () => {
     setLoading(true);
+    setLiveUrl(null); // Clear the old URL when generating a new one
     try {
       const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -74,6 +76,7 @@ export default function VibeStudio() {
       });
       const data = await res.json();
       if (data.htmlCode) setHtmlCode(data.htmlCode);
+      if (data.liveUrl) setLiveUrl(data.liveUrl);
     } catch (err) {
       console.error(err);
     } finally {
@@ -174,6 +177,19 @@ export default function VibeStudio() {
               </button>
             </div>
           </div>
+
+          {/* Glowing URL Banner */}
+          {liveUrl && (
+            <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-medium text-emerald-100">Live URL Manifested!</span>
+              </div>
+              <a href={liveUrl} target="_blank" rel="noreferrer" className="text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-md transition border border-emerald-500/30">
+                Open in New Tab →
+              </a>
+            </div>
+          )}
 
           <div className="flex-1 overflow-hidden">
             {activeTab === 'preview' ? (
