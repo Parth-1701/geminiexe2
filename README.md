@@ -22,7 +22,7 @@ Designers and developers often lose hours translating mockups into boilerplate c
 * **Deployment & CI/CD:** Vercel
 
 ## 💻 Live Demo
-Check out the live application here: **[Insert Your Vercel Link Here]**
+Check out the live application here: **[https://geminiexe2.vercel.app/]**
 
 ## ⚙️ Running Locally
 If you want to run this project on your local machine:
