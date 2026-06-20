@@ -8,22 +8,13 @@ export async function POST(request) {
     const body = await request.json();
     const { prompt, imageBase64, mimeType } = body; 
 
-    // Start with the prompt
+    // 1. Ask Gemini to write the code
     let contents = [];
-    if (prompt) {
-      contents.push(`Generate an application module matching these exact specs: ${prompt}`);
-    } else {
-      contents.push(`Recreate the UI shown in the provided image using Tailwind CSS.`);
-    }
+    if (prompt) contents.push(`Generate an application module matching these specs: ${prompt}`);
+    else contents.push(`Recreate the UI shown in the provided image using Tailwind CSS.`);
 
-    // If an image was uploaded, attach it to the Gemini payload
     if (imageBase64 && mimeType) {
-      contents.push({
-        inlineData: {
-          data: imageBase64,
-          mimeType: mimeType
-        }
-      });
+      contents.push({ inlineData: { data: imageBase64, mimeType: mimeType } });
     }
 
     const response = await ai.models.generateContent({
@@ -31,28 +22,53 @@ export async function POST(request) {
       contents: contents,
       config: {
         responseMimeType: 'application/json',
-        systemInstruction: `You are an expert full-stack engineer and modern UI architect. 
-        Your task is to generate complete, production-ready, beautiful, and fully functional single-page web applications or components based on the user's requirements and uploaded images.
-        
-        CRITICAL RULES:
-        1. You MUST use inline Tailwind CSS utility classes exclusively for styling.
-        2. Make the design modern, sleek, interactive, and visually striking.
-        3. Do NOT use markdown formatting, triple backticks (\`\`\`), or extra text outside the JSON.
-        
-        You must return a valid JSON object matching this schema exactly:
-        {
-          "htmlCode": "string containing the full, raw HTML content including any script tags, inline styles, and embedded Tailwind layout elements"
-        }`
+        systemInstruction: `You are an expert UI architect. Return a JSON object with a single key "htmlCode" containing the complete, raw HTML string with Tailwind CSS inline. No markdown formatting.`
       }
     });
 
     const text = response.text;
+    if (!text) throw new Error('No response from Gemini');
+    
+    const result = JSON.parse(text);
+    const htmlCode = result.htmlCode;
 
-    if (!text) {
-      return NextResponse.json({ error: 'No response from Gemini' }, { status: 500 });
+    // 2. Upload to Supabase using pure REST API (Hackathon Shortcut!)
+    let liveUrl = null;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      // Create a unique filename for this generation
+      const filename = `vibe-app-${Date.now()}.html`;
+      
+      // The exact REST endpoint to upload files to a bucket
+      const uploadUrl = `${supabaseUrl}/storage/v1/object/vibe-exports/${filename}`;
+      
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+          'Content-Type': 'text/html; charset=utf-8', // Crucial: Tell the browser it's a website!
+        },
+        body: htmlCode,
+      });
+
+      if (uploadRes.ok) {
+        // Construct the public URL that anyone can visit
+        liveUrl = `${supabaseUrl}/storage/v1/object/public/vibe-exports/${filename}`;
+      } else {
+        const errorText = await uploadRes.text();
+        console.error('Supabase upload failed:', errorText);
+      }
     }
 
-    return NextResponse.json(JSON.parse(text));
+    // Return BOTH the code for the preview iframe AND the live shareable URL
+    return NextResponse.json({ 
+      htmlCode, 
+      liveUrl 
+    });
+
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
