@@ -6,12 +6,25 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 export async function POST(request) {
   try {
     const body = await request.json();
-    const prompt = body.prompt; 
+    const { prompt, imageBase64, mimeType } = body; 
 
-    // Combine user prompt with strict formatting rules
-    let contents = [
-      `Generate an application module matching these exact specs: ${prompt}`
-    ];
+    // Start with the prompt
+    let contents = [];
+    if (prompt) {
+      contents.push(`Generate an application module matching these exact specs: ${prompt}`);
+    } else {
+      contents.push(`Recreate the UI shown in the provided image using Tailwind CSS.`);
+    }
+
+    // If an image was uploaded, attach it to the Gemini payload
+    if (imageBase64 && mimeType) {
+      contents.push({
+        inlineData: {
+          data: imageBase64,
+          mimeType: mimeType
+        }
+      });
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash', 
@@ -19,13 +32,12 @@ export async function POST(request) {
       config: {
         responseMimeType: 'application/json',
         systemInstruction: `You are an expert full-stack engineer and modern UI architect. 
-        Your task is to generate complete, production-ready, beautiful, and fully functional single-page web applications or components based on the user's requirements.
+        Your task is to generate complete, production-ready, beautiful, and fully functional single-page web applications or components based on the user's requirements and uploaded images.
         
         CRITICAL RULES:
         1. You MUST use inline Tailwind CSS utility classes exclusively for styling.
-        2. Make the design modern, sleek, interactive, and visually striking (use gradients, clean spacing, clear typography, and glassmorphism where appropriate).
-        3. Include mock data or interactive JavaScript within the HTML if needed to show a working dashboard or app.
-        4. Do NOT use markdown formatting, triple backticks (\`\`\`), or extra text outside the JSON.
+        2. Make the design modern, sleek, interactive, and visually striking.
+        3. Do NOT use markdown formatting, triple backticks (\`\`\`), or extra text outside the JSON.
         
         You must return a valid JSON object matching this schema exactly:
         {
@@ -40,7 +52,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No response from Gemini' }, { status: 500 });
     }
 
-    // Return the parsed JSON securely to the frontend
     return NextResponse.json(JSON.parse(text));
   } catch (error) {
     console.error('API Error:', error);
