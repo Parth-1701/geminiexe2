@@ -192,14 +192,14 @@ export default function VibeStudio() {
           )}
 
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'preview' ? (
-              <PreviewFrame htmlCode={htmlCode} />
-            ) : (
-              <pre className="w-full h-full bg-slate-900 text-slate-300 p-4 rounded-xl border border-slate-800 overflow-auto font-mono text-xs selection:bg-indigo-500/30">
-                <code>{htmlCode || '// No code manifested yet.'}</code>
-              </pre>
-            )}
-          </div>
+  {activeTab === 'preview' ? (
+    <PreviewFrame htmlCode={htmlCode} />
+  ) : (
+    <pre className="w-full h-full bg-slate-900 text-slate-300 p-4 rounded-xl border border-slate-800 overflow-auto font-mono text-xs selection:bg-indigo-500/30 whitespace-pre-wrap break-all">
+      <code>{htmlCode || '// No code manifested yet.'}</code>
+    </pre>
+  )}
+</div>
         </div>
       </main>
     </div>
